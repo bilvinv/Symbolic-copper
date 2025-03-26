@@ -1,0 +1,70 @@
+clear
+variable seed equal 10329
+
+# ----- System -----
+units metal
+newton on
+
+boundary p p p
+box tilt large
+atom_style atomic
+read_data Cu_FCC.dat
+replicate 5 5 25
+variable T0 equal 300
+variable P0 equal 1
+
+# ----- Force Field -----
+pair_style eam  
+pair_coeff * * #POTENTIAL
+neighbor 2.0 bin
+neigh_modify delay 0 every 1 check yes
+# ----- output -----
+thermo       1000
+thermo_style custom step atoms pe ke temp press density lx ly lz  etotal enthalpy cella cellb cellc cellalpha cellbeta cellgamma
+thermo_modify line multi norm yes flush yes format float %.8g
+
+shell mkdir frames
+dump trajectory all custom 10000 frames/fr*.lammpstrj id type x y z
+
+# ----- Minimization -----
+min_style cg
+fix boxrelax all box/relax  iso ${P0} vmax 0.001
+minimize 1e-12 1e-12 10000 10000
+unfix boxrelax
+minimize 1e-6 1e-8 1000 10000
+
+
+region amp block INF INF INF INF 200 405 
+region cry block INF INF INF INF -5  200
+
+group  amp region amp
+group  cry region cry
+
+# ----- Equilibration -----
+velocity  all create ${T0} ${seed}
+fix rmMomentum all momentum 1 linear 1 1 1
+
+fix integrate all npt temp 300 300 0.1 aniso ${P0} ${P0} 10.0
+timestep 0.0005
+run 100000
+unfix integrate
+
+fix 1 cry setforce NULL NULL NULL
+
+fix integrate amp npt temp 300 3000 0.1 aniso ${P0} ${P0} 10.0
+timestep 0.0005
+run 100000
+
+unfix integrate
+fix integrate amp npt temp 3000 2000 0.1 aniso ${P0} ${P0} 10.0
+run 100000
+
+
+
+unfix integrate
+fix integrate amp npt temp 2000 1300 0.1 aniso ${P0} ${P0} 10.
+timestep 0.0001
+run 100000
+
+# ----- Finalize -----
+write_data crystal_amorphous.data nocoeff nofix

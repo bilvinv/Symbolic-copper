@@ -1,0 +1,11 @@
+units metal
+box tilt large
+
+atom_style      atomic
+read_data       after_min.data
+
+pair_style  ${des_pair}
+pair_coeff  * * ${des_pot_met}
+
+neighbor 0.3 bin
+timestep 0.0005 

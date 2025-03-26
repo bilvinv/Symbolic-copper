@@ -1,0 +1,11 @@
+units metal
+box tilt large
+read_data ${des_data}
+
+pair_style ${des_pair}
+pair_coeff * * ${des_pot_met}
+
+min_style cg
+minimize 1.0e-8 1.0e-8 10000 10000
+
+write_data after_min.data
